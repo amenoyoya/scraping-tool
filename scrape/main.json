@@ -1,0 +1,15 @@
+[
+  {
+    "type": "select",
+    "name": "detail_pages",
+    "args": ["#mainResults a.s-access-detail-page"]
+  },
+  {
+    "type": "if",
+    "cond": [
+      {
+        "exp": "len(_V['detail_pages']) > 0"
+      }
+    ]
+  }
+]
