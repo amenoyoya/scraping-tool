@@ -26,10 +26,10 @@ SOFTWARE.
 import os, re, time, shutil, urllib.request, io
 from PIL import Image
 from bs4 import BeautifulSoup
-from webd import load_url
+from webd import ChromeDriver, load_url
 
 # ニコニコログイン
-def login_niconico(driver, email, password):
+def login_niconico(driver: ChromeDriver, email: str, password: str) -> None:
     '''
     params:
         driver: selenium.webdriver
@@ -42,7 +42,7 @@ def login_niconico(driver, email, password):
     driver.find_element_by_id("login__submit").submit()
 
 # お気に入り作品を列挙
-def get_nicomanga_favorites(driver):
+def get_nicomanga_favorites(driver: ChromeDriver) -> dict:
     '''
     params:
         driver: selenium.webdriver
@@ -50,27 +50,30 @@ def get_nicomanga_favorites(driver):
         result: dict = {
             user: ログインユーザー名,
             list: [
-                {id: 作品ID, title: 作品タイトル}
+                {id: 作品ID, title: 作品タイトル, img_url: サムネイル画像URL},
+                ...
             ]
         }
     '''
     load_url(driver, 'http://seiga.nicovideo.jp/my/manga/favorite')
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-    obj = {
+    soup: BeautifulSoup = BeautifulSoup(driver.page_source, 'html.parser')
+    obj: dict = {
         'user': soup.select('#siteHeaderUserNickNameContainer')[0].attrs['data-nickname'],
         'list': []
     }
-    for e in soup.select('li.favorite'):
-        id = re.search(r'\d+', e.attrs['id']).group()
-        title = ''
-        for a in e.select('a'):
-            if re.match(r'^\/comic\/', a.attrs.get('href', '')) and a.attrs.get('class') is None:
-                title = a.text
-        obj['list'].append({'id': id, 'title': title})
+    for li in soup.select('li.favorite'):
+        id: str = re.search(r'\d+', li.attrs['id']).group()
+        select: list = li.select('div.title a')
+        title: str = select[0].text if len(select) > 0 else ''
+        select: list = li.select('div.center_img img')
+        img_url: str = select[0].attrs['src'] if len(select) > 0 else ''
+        obj['list'] += [{
+            'id': id, 'title': title, 'img_url': img_url
+        }]
     return obj
 
 # 指定IDの漫画の情報を取得
-def get_nicomanga_info(driver, id):
+def get_nicomanga_info(driver: ChromeDriver, id: str) -> dict:
     '''
     params:
         driver: selenium.webdriver
@@ -78,31 +81,38 @@ def get_nicomanga_info(driver, id):
     return:
         result: dict = {
             title: 漫画タイトル,
-            episodes: [エピソードID配列]
+            episodes: [
+                {id: エピソードID, title: エピソードタイトル, img_url: サムネイル画像URL},
+                ...
+            ]
         }
     '''
     driver.get(f'http://seiga.nicovideo.jp/comic/{id}')
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-    result = {
+    soup: BeautifulSoup = BeautifulSoup(driver.page_source, 'html.parser')
+    result: dict = {
         'title': soup.select('li.active span[itemprop="title"]')[0].text,
         'episodes': []
     }
     for li in soup.select('li.episode_item'):
-        href = li.select('a')[0].attrs['href']
-        episode = re.search(r'\/(mg\d+)', href).group(1)
-        result['episodes'].append(episode)
+        href: str = li.select('a')[0].attrs['href']
+        ep_id: str = re.search(r'\/(mg\d+)', href).group(1)
+        ep_title: str = li.select('div.title a')[0].text
+        ep_img_url: str = li.select('div.episode_thumb img')[0].attrs['src']
+        result['episodes'] += [{
+            'id': ep_id, 'title': ep_title, 'img_url': ep_img_url
+        }]
     return result
 
 # ファイル書き出し（存在しないディレクトリを自動作成）
-def writefile(filename, text):
-    dirpath = os.path.dirname(filename)
+def writefile(filename: str, text: str) -> None:
+    dirpath: str = os.path.dirname(filename)
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
     with open(filename, 'wb') as f:
         f.write(text)
 
 # ニコニコ静画の画像を保存
-def save_nicomanga_image(driver, image_id, save_path, auto_extension=False):
+def save_nicomanga_image(driver: ChromeDriver, image_id: str, save_path: str, auto_extension: bool=False) -> None:
     '''
     params:
         driver: selenium.webdriver
@@ -111,58 +121,59 @@ def save_nicomanga_image(driver, image_id, save_path, auto_extension=False):
         auto_extension: bool = Trueなら拡張子を自動的に付与
     '''
     load_url(driver, f'http://seiga.nicovideo.jp/image/source/{image_id}')
-    img_url = driver.find_element_by_tag_name('img').get_attribute('src')
-    f = io.BytesIO(urllib.request.urlopen(img_url).read())
-    img = Image.open(f)
-    dirpath = os.path.dirname(save_path)
+    img_url: str = driver.find_element_by_tag_name('img').get_attribute('src')
+    f: io.BytesIO = io.BytesIO(urllib.request.urlopen(img_url).read())
+    img: Image = Image.open(f)
+    dirpath: str = os.path.dirname(save_path)
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
     img.save(save_path + ('.' + img.format if auto_extension else ''))
 
 # エピソードページ解析クラス
 class NicoMangaEpisode(object):
-    def __init__(self, driver, id):
+    def __init__(self, driver: ChromeDriver, id: str):
         ''' 指定IDのエピソード（漫画1話分）を解析する
         params:
             driver: selenium.webdriver
             id: str = エピソードID (mg[0-9]+)
         '''
         load_url(driver, f'http://seiga.nicovideo.jp/watch/{id}')
-        self.id = id
-        self.title = driver.find_element_by_class_name("episode_title").text
-        self.source = driver.page_source
-        self.args = driver.execute_script("return args;")
+        self.id: str = id
+        self.title: str = driver.find_element_by_class_name("episode_title").text
+        self.source: str = driver.page_source
+        self.args: dict = driver.execute_script("return args;")
     
     # HTMLソース保存
-    def save_source(self, save_path_format='【{0[id]}】{0[title]}/source.html'):
+    def save_source(self, save_path_format: str='【{0[id]}】{0[title]}/source.html') -> None:
         writefile(
             save_path_format.format({
                 'id': self.id, 'title': self.title
-            }), self.source.encode()
+            }), str(self.source.encode())
         )
     
     # コメント保存
-    def save_comments(self, save_path_format='【{0[id]}】{0[title]}/comments.html'):
+    def save_comments(self, save_path_format: str='【{0[id]}】{0[title]}/comments.html') -> bool:
         '''
         r = urllib.request.urlopen("http://msg01.seiga.nicovideo.jp/api/thread?version=20090904&res_from=-1000&thread=" + self.args['threads'][0]['id'])
         writefile(f"【{self.id}】{self.title}\threads.xml", r.read())
         '''
-        soup = BeautifulSoup(self.source, 'html.parser')
-        ul = soup.select('ul.comment_list')
+        soup: BeautifulSoup = BeautifulSoup(self.source, 'html.parser')
+        ul: list = soup.select('ul.comment_list')
         if len(ul) == 0:
             return False
         writefile(
             save_path_format.format({
                 'id': self.id, 'title': self.title
-            }), str(ul[0]).encode()
+            }), str(str(ul[0]).encode())
         )
+        return True
     
     # 各ページの画像IDの配列を取得
-    def get_image_ids(self):
+    def get_image_ids(self) -> list:
         return [page['image_id'] for page in self.args['pages']]
     
     # エピソードの全ページ画像を保存
-    def save_images(self, driver, save_path_format='【{0[id]}】{0[title]}/{0[image_id]}.png', interval=3):
+    def save_images(self, driver: ChromeDriver, save_path_format: str='【{0[id]}】{0[title]}/{0[image_id]}.png', interval: int=3) -> None:
         for img_id in self.get_image_ids():
             save_nicomanga_image(driver, img_id, save_path_format.format({
                 'id': self.id, 'title': self.title, 'image_id': img_id
@@ -171,8 +182,8 @@ class NicoMangaEpisode(object):
                 time.sleep(interval)
     
     # エピソード保存ディレクトリのアーカイブ化
-    def make_archiver(self, target_path_format='【{0[id]}】{0[title]}', archive_type='zip'):
-        path = target_path_format.format({
+    def make_archiver(self, target_path_format: str='【{0[id]}】{0[title]}', archive_type: str='zip') -> None:
+        path: str = target_path_format.format({
             'id': self.id, 'title': self.title
         })
         shutil.make_archive(path, archive_type, root_dir=path)

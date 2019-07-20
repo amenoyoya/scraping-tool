@@ -30,7 +30,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from typing import Callable, TypeVar, NewType
+from typing import Callable, TypeVar, NewType, Any
 from arch import is_windows, get_windows_program_path
 import os
 
@@ -92,8 +92,8 @@ def use_chrome_driver(opt: dict) -> Callable[[ChromeDriver], None]:
             ChromeDriver(driver).quit()
     return wrapper
 
-# URLを開き、要素が読み込まれるまで待つ関数
-def load_url(driver, url, element={}, timeout=15):
+# URLを開き、要素が読み込まれるまで待つ関数: (ChromeDriver, str, dict, int) -> bool
+def load_url(driver: ChromeDriver, url: str, element: dict={}, timeout: int=15) -> bool:
     ''' 指定urlを読み込んだ後 指定elementが読み込まれるまで待機
     params:
         driver: selenium.webdriver
@@ -106,7 +106,7 @@ def load_url(driver, url, element={}, timeout=15):
     '''
     driver.get(url)
     try:
-        id = element.get('id')
+        id: Any = element.get('id')
         if isinstance(id, str):
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, id)))
             return True
