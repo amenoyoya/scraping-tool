@@ -2,17 +2,18 @@ import sys
 # import対象ディレクトリ追加
 sys.path += ['../lib/']
 
+from arch import is_windows
 from webd import ChromeDriver, use_chrome_driver
 from niconico import login_niconico, get_nicomanga_favorites, get_nicomanga_info, NicoMangaEpisode
 from pprint import pprint
-import json, os
+import json
 
 def load_json(filepath: str) -> dict:
     with open(filepath, 'rb') as f:
         return json.load(f)
 
 @use_chrome_driver({
-    'driver': '../chromedriver75.exe'
+    'driver': '../chromedriver75.exe' if is_windows() else '../chromedriver'
 })
 def main(driver: ChromeDriver) -> None:
     account: dict = load_json('./account.json')

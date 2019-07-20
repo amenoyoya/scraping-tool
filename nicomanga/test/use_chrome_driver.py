@@ -2,10 +2,11 @@ import sys
 # import対象ディレクトリ追加
 sys.path += ['../lib/']
 
+from arch import is_windows
 from webd import ChromeDriver, use_chrome_driver, load_url
 
 @use_chrome_driver({
-    'driver': '../chromedriver75.exe',
+    'driver': '../chromedriver75.exe' if is_windows() else '../chromedriver',
     'size': (1920, 1020)
 })
 def main(driver: ChromeDriver) -> None:
