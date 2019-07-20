@@ -73,14 +73,24 @@ def create_chrome_driver(opt: dict) -> MaybeChromeDriver:
         print(f'ChromeDriver Path: {driver_path}\nOptions: {opt}')
         return None
 
-# ChromeDriver使用デコレータ: dict -> (ChromeDriver -> None)
+# ChromeDriver使用デコレータ: dict -> ((ChromeDriver -> None) -> None)
 def use_chrome_driver(opt: dict) -> Callable[[ChromeDriver], None]:
-    def deco(callback: Callable[[ChromeDriver], None]):
+    '''
+    @use_chrome_driver({
+            driver: str = (optional) ChromeDriverの実行ファイルパス
+            bin: str = (optional) Chrome実行ファイルへのパス
+            headless: bool = (optional) ヘッドレスモードで起動するか
+            size: tuple(width: int, height: int) = (optional) ウィンドウサイズ
+        })
+    def callback(driver: ChromeDriver) -> None:
+        ...
+    '''
+    def wrapper(callback: Callable[[ChromeDriver], None]) -> None:
         driver: MaybeChromeDriver = create_chrome_driver(opt)
         if driver is not None:
             callback(ChromeDriver(driver))
             ChromeDriver(driver).quit()
-    return deco
+    return wrapper
 
 # URLを開き、要素が読み込まれるまで待つ関数
 def load_url(driver, url, element={}, timeout=15):
@@ -108,15 +118,3 @@ def load_url(driver, url, element={}, timeout=15):
         return True
     except TimeoutException:
         return False
-
-# seleniumデコレータ使用方法
-# @selenium('../chromedriver', {'size': (1248, 1024)})
-# def test_selenium(driver):
-    ''' Googleで「chrome」と検索してスクリーンショットを撮る
-    params:
-        driver: selenium.webdriver
-    '''
-    # https://www.google.co.jp/search?q=chrome をロードし、全要素が読み込まれるまで15秒待機
-    # load_url(driver, 'https://www.google.co.jp/search?q=chrome', {}, 15)
-    # driver.save_screenshot('screenshot.png')
-    # => Then, driver will close
