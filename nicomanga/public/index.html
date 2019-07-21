@@ -8,5 +8,19 @@
         <div id="app"></div>
         <!-- Vue + webpack によりバンドルされた bundle.js を読み込む -->
         <script src="./bundle.js"></script>
+        <!-- Eelアプリケーション用ライブラリ読み込み -->
+        <script src="/eel.js"></script>
     </body>
+
+    <!-- Eelアプリケーション用スクリプト -->
+    <script>
+        // 右クリックイベントをスルー
+        /*document.oncontextmenu = function () {
+          return false;
+        }*/
+        // 終了イベント
+        window.onclose = function () {
+          eel.exit_system() // pythonで定義した exit_system 関数を実行
+        }
+      </script>
 </html>

@@ -24,7 +24,7 @@ Vue.use(Router);
 const router = new Router({
   mode: 'history',
   routes: [
-    {path: '/', component: Home},
+    {path: '/index.html', component: Home},
   ]
 });
 

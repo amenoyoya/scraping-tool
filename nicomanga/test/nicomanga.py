@@ -4,7 +4,7 @@ sys.path += ['../lib/']
 
 from arch import is_windows
 from webd import ChromeDriver, use_chrome_driver
-from niconico import login_niconico, get_nicomanga_favorites, get_nicomanga_info, NicoMangaEpisode
+from niconico import login_niconico, get_nicomanga_favorites, get_nicomanga_info
 from pprint import pprint
 import json
 

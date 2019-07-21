@@ -26,7 +26,7 @@ SOFTWARE.
 import os, re, time, shutil, urllib.request, io
 from PIL import Image
 from bs4 import BeautifulSoup
-from webd import ChromeDriver, load_url
+from .webd import ChromeDriver, load_url
 
 # ニコニコログイン
 def login_niconico(driver: ChromeDriver, email: str, password: str) -> None:
@@ -109,7 +109,7 @@ def writefile(filename: str, text: str) -> None:
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
     with open(filename, 'wb') as f:
-        f.write(text)
+        f.write(text.encode())
 
 # ニコニコ静画の画像を保存
 def save_nicomanga_image(driver: ChromeDriver, image_id: str, save_path: str, auto_extension: bool=False) -> None:

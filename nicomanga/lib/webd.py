@@ -31,7 +31,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from typing import Callable, TypeVar, NewType, Any
-from arch import is_windows, get_windows_program_path
+from .arch import is_windows, get_windows_program_path
 import os
 
 # type ChromeDriver = webdriver.Chrome
