@@ -3,6 +3,7 @@ Node.js (Vuetify) + Python (Eel) アプリケーション
 開発中は `yarn webpack --watch` でVueファイルの自動ビルドを有効化しておく
 '''
 import eel, sys, os
+from lib.arch import is_windows
 from lib.webd import ChromeDriver, use_chrome_driver
 from lib.niconico import login_niconico, get_nicomanga_favorites, get_nicomanga_info, NicoMangaEpisode
 
@@ -18,7 +19,7 @@ def download_nicomanga_episode(driver: ChromeDriver, id: str, path: str) -> None
     ep.save_images(driver, os.path.join(path, '【{0[id]}】{0[title]}', '{0[image_id]}.png'), 1)
     ep.make_archiver(os.path.join(path, '【{0[id]}】{0[title]}'))
 
-@use_chrome_driver({'driver': 'chromedriver75.exe'})
+@use_chrome_driver({'driver': './chromedriver75.exe' if is_windows() else './chromedriver'})
 def main(driver: ChromeDriver) -> None:
     # Eel公開関数
 
