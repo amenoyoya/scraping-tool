@@ -15,11 +15,11 @@ def download_nicomanga_episode(driver: ChromeDriver, id: str, path: str) -> None
         path: str = 保存先ディレクトリ
     '''
     ep: NicoMangaEpisode = NicoMangaEpisode(driver, id)
-    ep.save_comments(os.path.join(path, '【{0[id]}】{0[title]}', 'comments.html'))
-    ep.save_images(driver, os.path.join(path, '【{0[id]}】{0[title]}', '{0[image_id]}.png'), 1)
+    ep.save_comments(os.path.join(path, '【{0[id]}】{0[title]}', 'comments.html'), False)
+    ep.save_images(driver, os.path.join(path, '【{0[id]}】{0[title]}', '{0[image_id]}.png'), 0, False)
     ep.make_archiver(os.path.join(path, '【{0[id]}】{0[title]}'))
 
-@use_chrome_driver({'driver': './chromedriver75.exe' if is_windows() else './chromedriver'})
+@use_chrome_driver({'driver': './chromedriver77.exe' if is_windows() else './chromedriver75'})
 def main(driver: ChromeDriver) -> None:
     # Eel公開関数
 

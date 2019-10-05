@@ -144,28 +144,32 @@ class NicoMangaEpisode(object):
         self.args: dict = driver.execute_script("return args;")
     
     # HTMLソース保存
-    def save_source(self, save_path_format: str='【{0[id]}】{0[title]}/source.html') -> None:
-        writefile(
-            save_path_format.format({
-                'id': self.id, 'title': self.title
-            }), str(self.source.encode())
-        )
+    def save_source(self, save_path_format: str='【{0[id]}】{0[title]}/source.html', redownload: bool=True) -> None:
+        path = save_path_format.format({
+            'id': self.id, 'title': self.title
+        })
+        if not redownload and os.path.isfile(path):
+            # 再ダウンロードしない
+            return None
+        writefile(path, str(self.source.encode()))
     
     # コメント保存
-    def save_comments(self, save_path_format: str='【{0[id]}】{0[title]}/comments.html') -> bool:
+    def save_comments(self, save_path_format: str='【{0[id]}】{0[title]}/comments.html', redownload: bool=True) -> bool:
         '''
         r = urllib.request.urlopen("http://msg01.seiga.nicovideo.jp/api/thread?version=20090904&res_from=-1000&thread=" + self.args['threads'][0]['id'])
         writefile(f"【{self.id}】{self.title}\threads.xml", r.read())
         '''
+        path = save_path_format.format({
+            'id': self.id, 'title': self.title
+        })
+        if not redownload and os.path.isfile(path):
+            # 再ダウンロードしない
+            return None
         soup: BeautifulSoup = BeautifulSoup(self.source, 'html.parser')
         ul: list = soup.select('ul.comment_list')
         if len(ul) == 0:
             return False
-        writefile(
-            save_path_format.format({
-                'id': self.id, 'title': self.title
-            }), str(str(ul[0]).encode())
-        )
+        writefile(path, str(str(ul[0]).encode()))
         return True
     
     # 各ページの画像IDの配列を取得
@@ -173,11 +177,15 @@ class NicoMangaEpisode(object):
         return [page['image_id'] for page in self.args['pages']]
     
     # エピソードの全ページ画像を保存
-    def save_images(self, driver: ChromeDriver, save_path_format: str='【{0[id]}】{0[title]}/{0[image_id]}.png', interval: int=3) -> None:
+    def save_images(self, driver: ChromeDriver, save_path_format: str='【{0[id]}】{0[title]}/{0[image_id]}.png', interval: int=3, redownload: bool=True) -> None:
         for img_id in self.get_image_ids():
-            save_nicomanga_image(driver, img_id, save_path_format.format({
+            path = save_path_format.format({
                 'id': self.id, 'title': self.title, 'image_id': img_id
-            }))
+            })
+            if not redownload and os.path.isfile(path):
+                # 再ダウンロードしない
+                continue
+            save_nicomanga_image(driver, img_id, path)
             if interval > 0:
                 time.sleep(interval)
     
