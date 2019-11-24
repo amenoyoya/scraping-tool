@@ -50,12 +50,8 @@ def main(driver: ChromeDriver) -> None:
 
     # Eelアプリケーション実行
     eel.init('public')
-    eel.start('index.html', options={
-        'mode': 'chrome-app', # 'chrome'
-        'port': 8000,
-        "chromeFlags": [
-            # '--start-fullscreen',  # フルスクリーンで起動 他のChromeが起動していると機能しない？
-            # '--window-position=0,0',
-            '--window-size=800,600',
-        ]
-    })
+    eel.start(
+        'index.html',
+        mode='chrome-app',
+        port=8000
+    )
