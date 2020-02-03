@@ -1,0 +1,4 @@
+eel
+pillow
+bs4
+selenium

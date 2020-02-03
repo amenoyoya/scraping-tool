@@ -19,7 +19,7 @@ def download_nicomanga_episode(driver: ChromeDriver, id: str, path: str) -> None
     ep.save_images(driver, os.path.join(path, '【{0[id]}】{0[title]}', '{0[image_id]}.png'), 0, False)
     ep.make_archiver(os.path.join(path, '【{0[id]}】{0[title]}'))
 
-@use_chrome_driver({'driver': './chromedriver77.exe' if is_windows() else './chromedriver78'})
+@use_chrome_driver({'driver': './chromedriver79.exe' if is_windows() else './chromedriver78'})
 def main(driver: ChromeDriver) -> None:
     # Eel公開関数
 
