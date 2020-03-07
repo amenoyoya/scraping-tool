@@ -54,3 +54,13 @@ $ yarn start
 
 ## => http://localhost:3333
 ```
+
+***
+
+## API
+
+### Open API
+- node_modules:
+    - swagger-ui-express
+    - swagger-jsdoc
+- reference: http://localhost:3333/spec/

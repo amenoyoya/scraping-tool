@@ -62,7 +62,7 @@ const launch = async (option = null) => {
  */
 const getPages = async () => {
   // Puppeteerが起動していない場合は起動
-  if (null === browser && ! await launch()) {
+  if (null === browser && ! await launch({headless: false})) {
     return null;
   }
   return await browser.pages();
