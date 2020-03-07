@@ -1,62 +1,56 @@
 # ScrapingTool
 
-## What's this?
-
 スクレイピングを簡単に行うためのツール
 
-***
 
-## Setup
+## Environment
 
-### Environment
-- 環境
-    - OS: Ubuntu 18.04 LTS
-    - Browser: Google Chrome 75.0
-    - Engine: Miniconda 4.5.11
-        - Python 3.7.3
-- Pythonライブラリ
-    - ブラウザ自動操作ライブラリ `selenium`
-        ```bash
-        $ pip install selenium
-        ```
-    - HTMLタグ解析ライブラリ `BeautifulSoup4`
-        ```bash
-        $ pip install beautifulsoup4
-        ```
-    - 画像ライブラリ `pillow`
-        ```bash
-        $ pip install pillow
-        ```
-    - ElectronライクなGUIライブラリ `Eel`
-        ```bash
-        $ pip install eel
-        ```
+- OS:
+    - Ubuntu 18.04 LTS
+    - Windows 10
+- Node.js: 12.14.1
+    - Yarn package manager: 1.21.1
+    - Express web framework: 4.17.1
+    - Nodemon: 2.0.2
+        - ソースコード変更時に Express を毎回再起動するのは面倒なため導入
+        - `node app/app.js` の代わりに `nodemon app/app.js` とするだけでソースコード変更時に Node プロセスを再起動するようになる
 
----
+### Structure
+```bash
+./
+|_ app/ # 作業ディレクトリ => docker://express:/home/node/app/
+|   |_ api/     # API定義スクリプト格納ディレクトリ
+|   |   |_ index.js   # /api/*
+|   |
+|   |_ lib/
+|   |   |_ puppet.js  # puppeteerラッパーライブラリ
+|   |
+|   |_ public/  # 静的ホスティングディレクトリ
+|   |   |_ js/
+|   |   |   |_ (index.js) # Webpackバンドル後のJavaScriptファイル
+|   |   |
+|   |   |_ index.html # ドキュメントルート
+|   |
+|   |_ app.js   # Expressサーバ | http://localhost:3333
+|
+|_ src/    # Webpackソーススクリプト格納ディレクトリ
+|   |_ App.vue  # Appコンポーネント
+|   |_ index.js # Webpackソーススクリプト（エントリーポイント）
+|
+|_ package.json       # 必要な node_modules 設定
+|_ webpack.config.js  # Webpackバンドル設定
+```
 
 ### Setup
-- Chromeブラウザのバージョンに合ったChromeDriverをダウンロードする
-    ```bash
-    $ curl -L https://chromedriver.storage.googleapis.com/75.0.3770.90/chromedriver_linux64.zip -o chromedriver.zip
-    $ unzip chromedriver.zip
-    $ rm chromedriver.zip
-    ```
-- Test run: ヘッドレスモードでChromeブラウザを起動しスクリーンショットを撮る
-    - **test.py**
-        ```python
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        # Chromeブラウザの起動オプション
-        options = Options()
-        options.binary_location = '/usr/bin/google-chrome' # <(which google-chrome)
-        options.add_argument('--headless') # ヘッドレスモードで起動
-        options.add_argument('--window-size=1280,1024') # ウィンドウサイズを1280x1024に
-        # ChromeDriverを使ってSeleniumドライバ生成
-        driver = webdriver.Chrome('./chromedriver', chrome_options=options)
-        # Googleで「chrome」と検索したときの画面を取得
-        driver.get('https://www.google.co.jp/search?q=chrome')
-        driver.save_screenshot('screenshot.png')
-        driver.quit()
-        ```
-    - Run `python test.py`
-        - Googleで「chrome」と検索したときの画面のスクリーンショットが`screenshot.png`に保存される
+```bash
+# install node_modules
+$ yarn install
+
+# npm scripts: start
+## => concurrently で以下のコマンドを並列実行
+##      $ webpack --watch --watch-poll: Webpackソース監視＆自動バンドル
+##      $ nodemon app/app.js: app.js 実行＆ソース変更時、プロセス自動再起動
+$ yarn start
+
+## => http://localhost:3333
+```
