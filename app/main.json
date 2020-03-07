@@ -1,6 +1,6 @@
 [
   {
-    "type": "select",
+    "type": "goto",
     "name": "detail_pages",
     "args": ["#mainResults a.s-access-detail-page"]
   },

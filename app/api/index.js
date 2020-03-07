@@ -27,21 +27,37 @@ router.delete('/puppet/', async (req, res) => {
 });
 
 /**
- * GET /api/puppet/screenshot/ => Puppeteerスクリーンショット撮影
+ * PUT /api/puppet/ => Puppeteer URL移動
  * @request {url: string}
- * @response '<img src="data:image/png;base64,...">'
+ * @request {username: string}: Basic認証が必要な場合に指定
+ * @request {password: string}: Basic認証が必要な場合に指定
+ * @response {result: boolean}
  */
-router.get('/puppet/screenshot/', async (req, res) => {
-  if (typeof req.body === 'object' && typeof req.body.url === 'string') {
-    const pages = await puppet.getPages();
-    const page = pages.length > 0? pages[0]: await puppet.getNewPage();
-    await page.goto(req.body.url, {waitUntil: 'domcontentloaded'});
-    return res.status(200).json({
-      base64: await page.screenshot({encoding: 'base64'})
+router.put('/puppet/', async (req, res) => {
+  const page = await puppet.page();
+  if (typeof req.body !== 'object' || typeof req.body.url !== 'string') {
+    return res.status(400).json({
+      message: 'request must contain `url` param'
     });
   }
-  res.status(400).json({
-    message: 'request must contain `url` param'
+  if (typeof req.body.username === 'string' && typeof req.body.password === 'string') {
+    await page.setExtraHTTPHeaders({
+      Authorization: `Basic ${new Buffer(`${req.body.username}:${req.body.password}`).toString('base64')}`
+    });
+  }
+  res.status(200).json({
+    result: await page.goto(req.body.url, {waitUntil: "domcontentloaded"})
+  })
+});
+
+/**
+ * GET /api/puppet/screenshot/ => Puppeteerスクリーンショット撮影
+ * @response {base64: string}: 画像データをbase64エンコードした値
+ */
+router.get('/puppet/screenshot/', async (req, res) => {
+  const page = await puppet.page();
+  res.status(200).json({
+    base64: await page.screenshot({encoding: 'base64'})
   });
 });
 

@@ -106,5 +106,9 @@ module.exports = {
   launch,
   terminate,
   getPages,
-  getNewPage
+  getNewPage,
+  page() {
+    const pages = await getPages();
+    return pages.length > 0? pages[0]: await getNewPage();
+  }
 };
