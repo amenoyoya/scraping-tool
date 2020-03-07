@@ -107,8 +107,8 @@ module.exports = {
   terminate,
   getPages,
   getNewPage,
-  page() {
+  async page() {
     const pages = await getPages();
-    return pages.length > 0? pages[0]: await getNewPage();
+    return pages !== null && pages.length > 0? pages[0]: await getNewPage();
   }
 };

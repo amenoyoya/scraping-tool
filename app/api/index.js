@@ -31,7 +31,7 @@ router.delete('/puppet/', async (req, res) => {
  * @request {url: string}
  * @request {username: string}: Basic認証が必要な場合に指定
  * @request {password: string}: Basic認証が必要な場合に指定
- * @response {result: boolean}
+ * @response {response: object}
  */
 router.put('/puppet/', async (req, res) => {
   const page = await puppet.page();
@@ -45,9 +45,10 @@ router.put('/puppet/', async (req, res) => {
       Authorization: `Basic ${new Buffer(`${req.body.username}:${req.body.password}`).toString('base64')}`
     });
   }
+  const resp = await page.goto(req.body.url, {waitUntil: 'domcontentloaded'});
   res.status(200).json({
-    result: await page.goto(req.body.url, {waitUntil: "domcontentloaded"})
-  })
+    response: resp.headers()
+  });
 });
 
 /**
