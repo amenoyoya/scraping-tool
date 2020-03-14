@@ -70,7 +70,7 @@ const getPages = async () => {
 
 /**
  * Puppeteerブラウザ新規ページ取得
- * @return {object} puppeteer.page
+ * @return {Page} puppeteer.page
  */
 const getNewPage = async () => {
   // Puppeteerが起動していない場合は起動
@@ -101,6 +101,32 @@ const getNewPage = async () => {
   return page;
 };
 
+/**
+ * ページ内の指定要素を取得
+ * @param {Page} page: puppeteer.page
+ * @param {string} selector: セレクタ
+ * @return {*} {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
+ */
+const element = async (page, selector) => {
+  try {
+    return await page.$eval(selector, el => {
+      const attributes = {};
+      for (const attr of el.attributes) {
+        attributes[attr.name] = attr.value;
+      }
+      return {
+        text: el.innerText,
+        innerHTML: el.innerHTML,
+        outerHTML: el.outerHTML,
+        attributes: attributes,
+      }
+    });
+  } catch (err) {
+    console.log(err);
+    return null;
+  }
+};
+
 // export
 module.exports = {
   launch,
@@ -110,5 +136,6 @@ module.exports = {
   async page() {
     const pages = await getPages();
     return pages !== null && pages.length > 0? pages[0]: await getNewPage();
-  }
+  },
+  element,
 };
