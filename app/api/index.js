@@ -153,17 +153,12 @@ router.get('/puppet/element/', async (req, res) => {
  *       200:
  *         description: スクリーンショット取得
  *         schema:
- *           type: object
- *           properties:
- *             base64:
- *               example: base64エンコードされた画像データ
- *               type: string
+ *           example: フルスクリーン画像バイナリデータ
+ *           type: string
  */
 router.get('/puppet/screenshot/', async (req, res) => {
   const page = await puppet.page();
-  res.status(200).json({
-    base64: await page.screenshot({encoding: 'base64'})
-  });
+  res.status(200).send(await page.screenshot({fullPage: true}));
 });
 
 // export
