@@ -100,6 +100,35 @@ router.put('/puppet/', async (req, res) => {
 
 /**
  * @swagger
+ * /api/puppet/emulate/:
+ *   put:
+ *     description: "デバイスエミュレーションを変更する (例) \"Windows\", \"Macintosh\", \"Galaxy Note 3\", \"iPhone X\", ..."
+ *     parameters:
+ *       - name: device
+ *         in: formData
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: 成功
+ *       400:
+ *         description: deviceが指定されていない
+ *       500:
+ *         description: エラー発生
+ */
+router.put('/puppet/emulate/', async (req, res) => {
+  const page = await puppet.page();
+  if (typeof req.body !== 'object' || typeof req.body.device !== 'string') {
+    return res.status(400).send();
+  }
+  if (! await puppet.emulate(page, req.body.device)) {
+    return res.status(500).send();
+  }
+  res.status(200).send();
+});
+
+/**
+ * @swagger
  * /api/puppet/element/:
  *   get:
  *     description: 現在のページ内の指定要素を取得する
@@ -142,6 +171,48 @@ router.get('/puppet/element/', async (req, res) => {
     return res.status(404).send();
   }
   res.status(200).json(element);
+});
+
+/**
+ * @swagger
+ * /api/puppet/elements/:
+ *   get:
+ *     description: 現在のページ内の指定要素のリストを取得する
+ *     parameters:
+ *       - name: selector
+ *         in: query
+ *         description: 要素セレクタ
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: 要素リスト取得
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               text:
+ *                 example: 要素内のテキスト
+ *                 type: string
+ *               innerHTML:
+ *                 example: 要素のinnerHTML
+ *                 type: string
+ *               outerHTML:
+ *                 example: 要素のouterHTML
+ *                 type: string
+ *               attributes:
+ *                 example: 要素の持つ 属性 => 属性値 の連想配列
+ *                 type: object
+ *       400:
+ *         description: 要素セレクタが指定されていない
+ */
+router.get('/puppet/elements/', async (req, res) => {
+  if (typeof req.query !== 'object' || typeof req.query.selector !== 'string') {
+    return res.status(400).send();
+  }
+  const page = await puppet.page();
+  res.status(200).json(await puppet.elements(page, req.query.selector));
 });
 
 /**

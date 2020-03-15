@@ -7,6 +7,33 @@
  */
 const fs = require('fs');
 const puppeteer = require('puppeteer');
+const devices = require('puppeteer/DeviceDescriptors');
+
+// 対応デバイス追加
+devices['Macintosh'] = {
+  'name': 'Macintosh',
+  'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3864.0 Safari/537.36',
+  'viewport': {
+    'width': 1024,
+    'height': 820,
+    'deviceScaleFactor': 1,
+    'isMobile': false,
+    'hasTouch': false,
+    'isLandscape': false
+  }
+};
+devices['Windows'] = {
+  'name': 'Windows',
+  'userAgent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3864.0',
+  'viewport': {
+    'width': 1024,
+    'height': 820,
+    'deviceScaleFactor': 1,
+    'isMobile': false,
+    'hasTouch': false,
+    'isLandscape': false
+  }
+};
 
 // 一つのブラウザをグローバルで利用する
 let browser = null;
@@ -58,7 +85,7 @@ const launch = async (option = null) => {
 
 /**
  * Puppeteerブラウザページ取得
- * @return {array} puppeteer.pages
+ * @return {array} [puppeteer.Page]
  */
 const getPages = async () => {
   // Puppeteerが起動していない場合は起動
@@ -70,7 +97,7 @@ const getPages = async () => {
 
 /**
  * Puppeteerブラウザ新規ページ取得
- * @return {Page} puppeteer.page
+ * @return {Page} puppeteer.Page
  */
 const getNewPage = async () => {
   // Puppeteerが起動していない場合は起動
@@ -102,14 +129,36 @@ const getNewPage = async () => {
 };
 
 /**
+ * デバイスエミュレーション変更
+ * @param {Page} page: puppeteer.Page
+ * @param {string} deviceName: デバイス名（puppeteer/DeviceDescriptors, 'Windows', 'Macintosh'）
+ * @return {boolean} 
+ */
+const emulate = async (page, deviceName) => {
+  try {
+    const device = devices[deviceName];
+    if (device === undefined) {
+      console.log('Emulation error: Unknown device', deviceName);
+      return false;
+    }
+    await page.emulate(device);
+    return true;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
+};
+
+/**
  * ページ内の指定要素を取得
- * @param {Page} page: puppeteer.page
+ * @param {Page} page: puppeteer.Page
  * @param {string} selector: セレクタ
  * @return {*} {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
  */
 const element = async (page, selector) => {
   try {
     return await page.$eval(selector, el => {
+      // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
       const attributes = {};
       for (const attr of el.attributes) {
         attributes[attr.name] = attr.value;
@@ -127,6 +176,37 @@ const element = async (page, selector) => {
   }
 };
 
+/**
+ * ページ内の指定要素のリスト取得
+ * @param {Page} page: puppeteer.Page
+ * @param {string} selector: セレクタ
+ * @return {array} [{text: string, innerHTML: string, outerHTML: string, attributes: object}]
+ */
+const elements = async (page, selector) => {
+  try {
+    return await page.$$eval(selector, elements => {
+      const result = [];
+      for (const el of elements) {
+        // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
+        const attributes = {};
+        for (const attr of el.attributes) {
+          attributes[attr.name] = attr.value;
+        }
+        result.push({
+          text: el.innerText,
+          innerHTML: el.innerHTML,
+          outerHTML: el.outerHTML,
+          attributes: attributes,
+        });
+      }
+      return result;
+    });
+  } catch (err) {
+    console.log(err);
+    return [];
+  }
+};
+
 // export
 module.exports = {
   launch,
@@ -137,5 +217,7 @@ module.exports = {
     const pages = await getPages();
     return pages !== null && pages.length > 0? pages[0]: await getNewPage();
   },
+  emulate,
   element,
+  elements,
 };
