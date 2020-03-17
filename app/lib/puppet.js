@@ -164,7 +164,7 @@ const element = async (page, selector, toJson = false) => {
       // JSON化
       const element = await page.$(selector);
       const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
-      return parseHtmlToJson(html);
+      return parseHtmlToJson(html, 'bodyChild');
     }
     return await page.$eval(selector, el => {
       // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
@@ -202,7 +202,7 @@ const elements = async (page, selector, toJson = false) => {
       const result = [];
       for (const element of elements) {
         const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
-        result.push(parseHtmlToJson(html));
+        result.push(parseHtmlToJson(html, 'bodyChild'));
       }
       return result;
     }

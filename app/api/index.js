@@ -147,7 +147,7 @@ router.put('/puppet/emulate/', async (req, res) => {
  *         description: 要素取得
  *         schema:
  *           type: object
- *           example: "{text: innerText, innerHTML, outerHTML, attributes: [attr: value]} or [{tag: {$text: innerText, [attr: value], $children: []}}]"
+ *           example: "{text: innerText, innerHTML, outerHTML, attributes: [attr: value]} or {tag: {$text: innerText, [attr: value], $children: []}}"
  *       400:
  *         description: 要素セレクタが指定されていない
  *       404:
@@ -187,7 +187,7 @@ router.get('/puppet/element/', async (req, res) => {
  *           type: array
  *           items:
  *             type: object
- *             example: "{text: innerText, innerHTML, outerHTML, attributes: [attr: value]}] or [{tag: {$text: innerText, [attr: value], $children: []}}]"
+ *             example: "{text: innerText, innerHTML, outerHTML, attributes: [attr: value]}] or {tag: {$text: innerText, [attr: value], $children: []}}"
  *       400:
  *         description: 要素セレクタが指定されていない
  */

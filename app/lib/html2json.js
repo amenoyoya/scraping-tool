@@ -28,22 +28,21 @@ const getDomTree = (element) => {
     }
   }
   object['$text'] = element.textContent;
-  // HTML, HEAD, BODY は無視
-  return element.nodeName === 'HTML' ?
-    object['$children'][0] : (
-      element.nodeName === 'HEAD' || element.nodeName === 'BODY' ?
-        object['$children'] : {[element.nodeName]: object}
-    );
+  return {[element.nodeName]: object};
 };
 
 /**
  * HTMLをJSONオブジェクトに変換
- * @param {string} html 
+ * @param {string} html: 対象HTML
+ * @param {string} target: 'firstChild' | 'head' | 'body' | 'bodyChild'
  */
-const parseHtmlToJson = (html) => {
+const parseHtmlToJson = (html, target = 'firstChild') => {
   try {
     const dom = new jsdom.JSDOM(html);
-    return getDomTree( dom.window.document.firstChild);
+    if (target === 'bodyChild') {
+      return getDomTree(dom.window.document.body.firstChild);
+    }
+    return getDomTree(dom.window.document[target]);
   } catch (err) {
     return {};
   }
