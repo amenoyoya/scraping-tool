@@ -5,9 +5,9 @@
  * Puppeteer を永続化して api 駆動させる
  * 参考: https://qiita.com/go_sagawa/items/4a368040fac6f7264e2c
  */
-const fs = require('fs');
 const puppeteer = require('puppeteer');
 const devices = require('puppeteer/DeviceDescriptors');
+const {parseHtmlToJson} = require('./html2json');
 
 // 対応デバイス追加
 devices['Macintosh'] = {
@@ -153,10 +153,19 @@ const emulate = async (page, deviceName) => {
  * ページ内の指定要素を取得
  * @param {Page} page: puppeteer.Page
  * @param {string} selector: セレクタ
- * @return {*} {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
+ * @param {boolean} toJson: 再帰的にJSON化するか
+ * @return {*}
+ *   toJson = false: {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
+ *   toJson = true:  {<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}
  */
-const element = async (page, selector) => {
+const element = async (page, selector, toJson = false) => {
   try {
+    if (toJson) {
+      // JSON化
+      const element = await page.$(selector);
+      const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
+      return parseHtmlToJson(html);
+    }
     return await page.$eval(selector, el => {
       // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
       const attributes = {};
@@ -180,10 +189,23 @@ const element = async (page, selector) => {
  * ページ内の指定要素のリスト取得
  * @param {Page} page: puppeteer.Page
  * @param {string} selector: セレクタ
- * @return {array} [{text: string, innerHTML: string, outerHTML: string, attributes: object}]
+ * @param {boolean} toJson: 再帰的にJSON化するか
+ * @return {array}
+ *   toJson = false: [{text: string, innerHTML: string, outerHTML: string, attributes: object}]
+ *   toJson = true:  [{<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}]
  */
-const elements = async (page, selector) => {
+const elements = async (page, selector, toJson = false) => {
   try {
+    if (toJson) {
+      // JSON化
+      const elements = await page.$$(selector);
+      const result = [];
+      for (const element of elements) {
+        const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
+        result.push(parseHtmlToJson(html));
+      }
+      return result;
+    }
     return await page.$$eval(selector, elements => {
       const result = [];
       for (const el of elements) {
