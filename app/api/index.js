@@ -207,6 +207,105 @@ router.get('/puppet/elements/', async (req, res) => {
 
 /**
  * @swagger
+ * /api/puppet/input/:
+ *   put:
+ *     description: 現在のページ内の指定要素にテキスト入力する
+ *     parameters:
+ *       - name: selector
+ *         in: formData
+ *         description: 要素セレクタ
+ *         required: true
+ *         type: string
+ *       - name: text
+ *         in: formData
+ *         description: 入力テキスト（省略した場合は空文字）
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: 入力成功
+ *       400:
+ *         description: 要素セレクタが指定されていない
+ *       404:
+ *         description: 指定した要素が存在しない
+ */
+router.put('/puppet/input/', async (req, res) => {
+  if (typeof req.body !== 'object' || typeof req.body.selector !== 'string') {
+    return res.status(400).send();
+  }
+  const page = await puppet.page();
+  if (! await puppet.input(page, req.body.selector, typeof req.body.text === 'string' ? req.body.text : '')) {
+    return res.status(404).send();
+  }
+  res.status(200).send();
+});
+
+/**
+ * @swagger
+ * /api/puppet/select/:
+ *   put:
+ *     description: セレクトボックスから選択
+ *     parameters:
+ *       - name: selector
+ *         in: formData
+ *         description: 要素セレクタ
+ *         required: true
+ *         type: string
+ *       - name: value
+ *         in: formData
+ *         description: 選択する値
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: 選択成功
+ *       400:
+ *         description: 必要なパラメータが指定されていない
+ *       404:
+ *         description: 指定した要素が存在しない
+ */
+router.put('/puppet/select/', async (req, res) => {
+  if (typeof req.body !== 'object' || typeof req.body.selector !== 'string' || typeof req.body.value !== 'string') {
+    return res.status(400).send();
+  }
+  const page = await puppet.page();
+  if (! await puppet.input(page, req.body.selector, req.body.value)) {
+    return res.status(404).send();
+  }
+  res.status(200).send();
+});
+
+/**
+ * @swagger
+ * /api/puppet/click/:
+ *   put:
+ *     description: 現在のページ内の指定要素をクリックする
+ *     parameters:
+ *       - name: selector
+ *         in: formData
+ *         description: 要素セレクタ
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: クリック成功
+ *       400:
+ *         description: 要素セレクタが指定されていない
+ *       404:
+ *         description: 指定した要素が存在しない
+ */
+router.put('/puppet/click/', async (req, res) => {
+  if (typeof req.body !== 'object' || typeof req.body.selector !== 'string') {
+    return res.status(400).send();
+  }
+  const page = await puppet.page();
+  if (! await puppet.click(page, req.body.selector)) {
+    return res.status(404).send();
+  }
+  res.status(200).send();
+});
+
+/**
+ * @swagger
  * /api/puppet/screenshot/:
  *   get:
  *     description: 現在のページのスクリーンショットをとる

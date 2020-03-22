@@ -268,6 +268,56 @@ const elements = async (page, selector, toJson = '') => {
 };
 
 /**
+ * テキストボックス入力
+ * @param {Page} page puppeteer.Page
+ * @param {string} selector セレクタ
+ * @param {string} text 入力テキスト
+ * @return {boolean}
+ */
+const input = async (page, selector, text) => {
+  try {
+    await page.type(selector, text);
+    return true;
+  } catch (err) {
+    puppeteerError = err.message;
+    return false;
+  }
+};
+
+/**
+ * セレクトボックスから選択
+ * @param {Page} page puppeteer.Page
+ * @param {string} selector select へのセレクタ
+ * @param {string} value 選択値
+ * @return {boolean}
+ */
+const select = async (page, selector, value) => {
+  try {
+    await page.select(selector, value);
+    return true;
+  } catch (err) {
+    puppeteerError = err.message;
+    return false;
+  }
+};
+
+/**
+ * クリック
+ * @param {Page} page puppeteer.Page
+ * @param {string} selector セレクタ
+ * @return {boolean}
+ */
+const click = async (page, selector) => {
+  try {
+    await page.click(selector);
+    return true;
+  } catch (err) {
+    puppeteerError = err.message;
+    return false;
+  }
+};
+
+/**
  * 現在のページのフルスクリーンのスクリーンショット撮影
  * @param {Page} page puppeteer.Page
  * @return {Buffer} image
@@ -291,5 +341,8 @@ module.exports = {
   goto,
   element,
   elements,
+  input,
+  select,
+  click,
   screenshot,
 };
