@@ -56,6 +56,9 @@ const puppeteerLaunchOption = process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD?
 // Puppeteer追加オプション
 let puppeteerAdditionalOption = {};
 
+// Puppeteerエラー
+let puppeteerError = '';
+
 /**
  * Puppeteer終了
  */
@@ -68,7 +71,7 @@ const terminate = async () => {
 
 /**
  * Puppeteer起動
- * @param {*} option: Puppeteer追加オプション
+ * @param {*} option Puppeteer追加オプション
  * @return {boolean} result
  */
 const launch = async (option = null) => {
@@ -76,10 +79,14 @@ const launch = async (option = null) => {
   if (typeof option === 'object') {
     puppeteerAdditionalOption = option;
   }
-  browser = await puppeteer.launch({
-    ...puppeteerLaunchOption,
-    ...puppeteerAdditionalOption
-  });
+  try {
+    browser = await puppeteer.launch({
+      ...puppeteerLaunchOption,
+      ...puppeteerAdditionalOption
+    });
+  } catch (err) {
+    puppeteerError = err.message;
+  }
   return null !== browser;
 };
 
@@ -94,6 +101,14 @@ const getPages = async () => {
   }
   return await browser.pages();
 };
+
+/**
+ * Puppeteerエラー文取得
+ * @return {any} error
+ */
+const error = () => {
+  return puppeteerError;
+}
 
 /**
  * Puppeteerブラウザ新規ページ取得
@@ -130,41 +145,64 @@ const getNewPage = async () => {
 
 /**
  * デバイスエミュレーション変更
- * @param {Page} page: puppeteer.Page
- * @param {string} deviceName: デバイス名（puppeteer/DeviceDescriptors, 'Windows', 'Macintosh'）
+ * @param {Page} page puppeteer.Page
+ * @param {string} deviceName デバイス名（puppeteer/DeviceDescriptors, 'Windows', 'Macintosh'）
  * @return {boolean} 
  */
 const emulate = async (page, deviceName) => {
   try {
     const device = devices[deviceName];
     if (device === undefined) {
-      console.log('Emulation error: Unknown device', deviceName);
+      puppeteerError = `Emulation error: Unknown device "${deviceName}"`;
       return false;
     }
     await page.emulate(device);
     return true;
   } catch (err) {
-    console.log(err);
+    puppeteerError = err.message;
+    return false;
+  }
+};
+
+/**
+ * 指定URLへ遷移
+ * @param {Page} page puppeteer.Page
+ * @param {string} url
+ * @param {string|undefined} basicUserName Basic認証が必要な場合のユーザ名
+ * @param {string|undefined} basicPassword Basic認証が必要な場合のパスワード
+ * @return {Response|false} {buffer(): Buffer, headers(): object, json(): object, ...}
+ */
+const goto = async (page, url, basicUserName = undefined, basicPassword = undefined) => {
+  try {
+    if (typeof basicUserName === 'string' && typeof basicPassword === 'string') {
+      await page.setExtraHTTPHeaders({
+        Authorization: `Basic ${new Buffer(`${basicUserName}:${basicPassword}`).toString('base64')}`
+      });
+    }
+    // ページ遷移してドキュメント読み込みが完了するまで待つ
+    return await page.goto(url, {waitUntil: 'domcontentloaded'});
+  } catch (err) {
+    puppeteerError = err.message;
     return false;
   }
 };
 
 /**
  * ページ内の指定要素を取得
- * @param {Page} page: puppeteer.Page
- * @param {string} selector: セレクタ
- * @param {boolean} toJson: 再帰的にJSON化するか
+ * @param {Page} page puppeteer.Page
+ * @param {string} selector セレクタ
+ * @param {string} toJson 再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定
  * @return {*}
  *   toJson = false: {text: string, innerHTML: string, outerHTML: string, attributes: object} | null
- *   toJson = true:  {<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}
+ *   toJson = string:  {<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}
  */
-const element = async (page, selector, toJson = false) => {
+const element = async (page, selector, toJson = '') => {
   try {
-    if (toJson) {
+    if (toJson !== '') {
       // JSON化
       const element = await page.$(selector);
       const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
-      return parseHtmlToJson(html, 'bodyChild');
+      return parseHtmlToJson(html, toJson);
     }
     return await page.$eval(selector, el => {
       // 以下の処理は共通化したいが、$eval, $$eval では外部関数を呼び出せないため断念
@@ -180,29 +218,29 @@ const element = async (page, selector, toJson = false) => {
       }
     });
   } catch (err) {
-    console.log(err);
+    puppeteerError = err.message;
     return null;
   }
 };
 
 /**
  * ページ内の指定要素のリスト取得
- * @param {Page} page: puppeteer.Page
- * @param {string} selector: セレクタ
- * @param {boolean} toJson: 再帰的にJSON化するか
+ * @param {Page} page puppeteer.Page
+ * @param {string} selector セレクタ
+ * @param {string} toJson 再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定
  * @return {array}
  *   toJson = false: [{text: string, innerHTML: string, outerHTML: string, attributes: object}]
  *   toJson = true:  [{<tag>: {<attr>: <value>, '$text': string, '$children': [...]}}]
  */
-const elements = async (page, selector, toJson = false) => {
+const elements = async (page, selector, toJson = '') => {
   try {
-    if (toJson) {
+    if (toJson !== '') {
       // JSON化
       const elements = await page.$$(selector);
       const result = [];
       for (const element of elements) {
         const html = await page.evaluate(e => e === null? '': e.outerHTML, element);
-        result.push(parseHtmlToJson(html, 'bodyChild'));
+        result.push(parseHtmlToJson(html, toJson));
       }
       return result;
     }
@@ -224,15 +262,25 @@ const elements = async (page, selector, toJson = false) => {
       return result;
     });
   } catch (err) {
-    console.log(err);
+    puppeteerError = err.message;
     return [];
   }
+};
+
+/**
+ * 現在のページのフルスクリーンのスクリーンショット撮影
+ * @param {Page} page puppeteer.Page
+ * @return {Buffer} image
+ */
+const screenshot = async (page) => {
+  return await page.screenshot({fullPage: true});
 };
 
 // export
 module.exports = {
   launch,
   terminate,
+  error,
   getPages,
   getNewPage,
   async page() {
@@ -240,6 +288,8 @@ module.exports = {
     return pages !== null && pages.length > 0? pages[0]: await getNewPage();
   },
   emulate,
+  goto,
   element,
   elements,
+  screenshot,
 };

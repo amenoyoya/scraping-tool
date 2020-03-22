@@ -26,7 +26,9 @@ router.post('/puppet/', async (req, res) => {
   if (await puppet.launch(req.body)) {
     return res.status(201).send();
   }
-  res.status(500).send();
+  res.status(500).json({
+    error: puppet.error()
+  });
 });
 
 /**
@@ -77,25 +79,19 @@ router.delete('/puppet/', async (req, res) => {
  *         description: エラー発生
  */
 router.put('/puppet/', async (req, res) => {
-  try {
-    const page = await puppet.page();
-    if (typeof req.body !== 'object' || typeof req.body.url !== 'string') {
-      return res.status(400).send();
-    }
-    if (typeof req.body.username === 'string' && typeof req.body.password === 'string') {
-      await page.setExtraHTTPHeaders({
-        Authorization: `Basic ${new Buffer(`${req.body.username}:${req.body.password}`).toString('base64')}`
-      });
-    }
-    const resp = await page.goto(req.body.url, {waitUntil: 'domcontentloaded'});
-    res.status(200).json({
-      response: resp.headers()
-    });
-  } catch (err) {
+  const page = await puppet.page();
+  if (typeof req.body !== 'object' || typeof req.body.url !== 'string') {
+    return res.status(400).send();
+  }
+  const resp = await puppet.goto(page, req.body.url, req.body.username, req.body.password);
+  if (!resp) {
     res.status(500).json({
-      error: err
+      error: puppet.error()
     });
   }
+  res.status(200).json({
+    headers: resp.headers()
+  });
 });
 
 /**
@@ -122,7 +118,9 @@ router.put('/puppet/emulate/', async (req, res) => {
     return res.status(400).send();
   }
   if (! await puppet.emulate(page, req.body.device)) {
-    return res.status(500).send();
+    return res.status(500).json({
+      error: puppet.error()
+    });
   }
   res.status(200).send();
 });
@@ -140,8 +138,8 @@ router.put('/puppet/emulate/', async (req, res) => {
  *         type: string
  *       - name: json
  *         in: query
- *         description: "JSON化するかどうか（デフォルト: false）"
- *         type: boolean
+ *         description: "再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定"
+ *         type: string
  *     responses:
  *       200:
  *         description: 要素取得
@@ -158,7 +156,11 @@ router.get('/puppet/element/', async (req, res) => {
     return res.status(400).send();
   }
   const page = await puppet.page();
-  const element = await puppet.element(page, req.query.selector, req.query.json === 'true');
+  const element = await puppet.element(
+    page,
+    req.query.selector,
+    typeof req.query.json === 'string' ? req.query.json : ''
+  );
   if (!element) {
     return res.status(404).send();
   }
@@ -178,8 +180,8 @@ router.get('/puppet/element/', async (req, res) => {
  *         type: string
  *       - name: json
  *         in: query
- *         description: "JSON化するかどうか（デフォルト: false）"
- *         type: boolean
+ *         description: "再帰的にJSON化する場合 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild' を指定"
+ *         type: string
  *     responses:
  *       200:
  *         description: 要素リスト取得
@@ -196,7 +198,11 @@ router.get('/puppet/elements/', async (req, res) => {
     return res.status(400).send();
   }
   const page = await puppet.page();
-  res.status(200).json(await puppet.elements(page, req.query.selector, req.query.json === 'true'));
+  res.status(200).json(await puppet.elements(
+    page,
+    req.query.selector,
+    typeof req.query.json === 'string' ? req.query.json : ''
+  ));
 });
 
 /**
@@ -213,7 +219,7 @@ router.get('/puppet/elements/', async (req, res) => {
  */
 router.get('/puppet/screenshot/', async (req, res) => {
   const page = await puppet.page();
-  res.status(200).send(await page.screenshot({fullPage: true}));
+  res.status(200).send(await puppet.screenshot(page));
 });
 
 // export

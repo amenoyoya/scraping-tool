@@ -34,11 +34,14 @@ const getDomTree = (element) => {
 /**
  * HTMLをJSONオブジェクトに変換
  * @param {string} html: 対象HTML
- * @param {string} target: 'firstChild' | 'head' | 'body' | 'bodyChild'
+ * @param {string} target: 'firstChild' | 'head' | 'headChild' | 'body' | 'bodyChild'
  */
 const parseHtmlToJson = (html, target = 'firstChild') => {
   try {
     const dom = new jsdom.JSDOM(html);
+    if (target === 'headChild') {
+      return getDomTree(dom.window.document.head.firstChild);
+    }
     if (target === 'bodyChild') {
       return getDomTree(dom.window.document.body.firstChild);
     }
