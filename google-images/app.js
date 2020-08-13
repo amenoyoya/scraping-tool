@@ -32,18 +32,53 @@ const isFile = target => {
 }
 
 /**
+ * 指定URLのリソースをバイナリデータとして取得
+ * @param {string} url 
+ * @return {Buffer|null}
+ */
+const getBinaryData = async url => {
+  try {
+    const res = await axios.get(url, {responseType: 'arraybuffer'})
+    return new Buffer.from(res.data)
+  } catch (err) {
+    console.log(err)
+    return null
+  }
+}
+
+/**
+ * Base64画像データをバイナリデータとして取得
+ * @param {string} base64 
+ * @return {Buffer}
+ */
+const decodeBase64Image = base64 => {
+  return new Buffer.from(base64.replace(/^data:\w*\/\w+;base64,/, ''), 'base64')
+}
+
+/**
  * 指定URLのリソースをファイルにダウンロード
  * @param {string} url 
  * @param {string} filename 
  * @param {boolean} rename 同名ファイルを自動リネームするかどうか
+ * @return {boolean}
  */
 const download = async (url, filename, rename = false) => {
-  const res = await axios.get(url, {responseType: 'arraybuffer'})
   const dir = path.dirname(filename)
   const ext = path.extname(filename)
   // 同名ファイルを自動リネームする場合: filename + '_' + ext
   const basename = (rename && isFile(filename))? path.basename(filename, ext) + '_' + ext: path.basename(filename)
-  fs.writeFileSync(path.join(dir, basename), new Buffer.from(res.data), 'binary')
+  // base64デコード
+  if (url.match(/^data:/)) {
+    fs.writeFileSync(path.join(dir, basename), decodeBase64Image(url), 'binary')
+    return true
+  }
+  // URLからダウンロード
+  const buf = await getBinaryData(url)
+  if (buf === null) {
+    return false
+  }
+  fs.writeFileSync(path.join(dir, basename), buf, 'binary')
+  return true
 }
 
 /**
@@ -66,7 +101,11 @@ const puppet = async (callback, opt = {}) => {
       'isLandscape': false
     }
   })
-  await callback(page)
+  try {
+    await callback(page)
+  } catch (err) {
+    console.log(err)
+  }
   await browser.close()
 }
 
@@ -104,7 +143,7 @@ const getGoogleImage = async (page, index) => {
   try {
     await page.waitFor(
       'img[jsname="HiaYvf"]:not([src^="data:image"]):not([src^="https://encrypted-tbn0.gstatic.com"])',
-      {timeout: 15000}
+      {timeout: 5000}
     )
     return await page.$eval(
       'img[jsname="HiaYvf"]:not([src^="data:image"]):not([src^="https://encrypted-tbn0.gstatic.com"])',
@@ -122,11 +161,30 @@ const getGoogleImage = async (page, index) => {
 }
 
 /**
+ * Google画像検索: もっと表示
+ * @param {puppeteer.Page} page
+ * @return {boolean}
+ */
+const loadMoreGoogleImages = async page => {
+  try {
+    await page.click('input[jsaction="Pmjnye"]')
+    await page.waitFor(5000)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * 画像URLからファイル名取得
  * @param {string} url
  * @return {string}
  */
 const getFilename = url => {
+  if (url.match(/^data:/)) {
+    // base64 データの場合は 'base64.拡張子' というファイル名にする
+    return 'base64.' + url.match(/^data:image\/([^;]+)/)[1]
+  }
   const filename = path.basename(url.match(/[^\?]+/)[0]) // クエリ文字列は削除
   let ext = path.extname(filename)
   let stem = path.basename(filename, ext) // 拡張子抜きのファイル名
@@ -161,17 +219,26 @@ puppet(async page => {
     }
   }
   // 画像検索実行
+  let maxdownloads = program.numbers
   await searchGoogleImage(page, program.keyword)
-  for (let i = 0; i < program.numbers; ++i) {
+  for (let i = 0; i < maxdownloads; ++i) {
     const url = await getGoogleImage(page, i)
-    // 画像が取得できない => 終了
+    // 画像が取得できない => もっと表示 => もう画像がないなら終了
     if (!url) {
+      if (await loadMoreGoogleImages(page)) {
+        --i; // もっと表示できたらダウンロード再試行
+        continue;
+      }
       break;
     }
     // ダウンロード
     const filename = path.join(program.directory, getFilename(url))
-    await download(url, filename, program.rename)
-    console.log(`downloaded: ${filename}`)
+    if (true === await download(url, filename, program.rename)) {
+      console.log(`downloaded: ${filename}`)
+    } else {
+      // ダウンロードできなかった場合は maxdownloads を一つ増やす
+      ++maxdownloads
+    }
   }
 }, {
   headless: program.headless,
