@@ -203,6 +203,7 @@ program
   .option('-d, --directory <string>', '保存先ディレクトリ', '.')
   .option('-l, --headless <boolean>', 'ヘッドレスモード', false)
   .option('-s, --slowmode <number>', '動作遅延[ms]', 500)
+  .option('-C, --noclose <boolean>', 'ブラウザを自動で閉じない', false)
   .option('-n --numbers <number>', 'ダウンロード数', 100)
   .option('-r --rename <boolean>', '同名ファイルを自動リネーム', false)
   .requiredOption('-k, --keyword <string>', '検索キーワード')
@@ -244,4 +245,5 @@ puppet(async page => {
 }, {
   headless: program.headless,
   slowMode: program.slowmode,
+  close: program.noclose? false: true,
 })
