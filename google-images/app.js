@@ -1,5 +1,4 @@
 const puppeteer = require('puppeteer')
-const scrollPageToBottom = require('puppeteer-autoscroll-down')
 const axios = require('axios')
 const fs = require('fs')
 const path = require('path')
@@ -106,7 +105,9 @@ const puppet = async (callback, opt = {}) => {
   } catch (err) {
     console.log(err)
   }
-  await browser.close()
+  if (opt.close !== false) {
+    await browser.close()
+  }
 }
 
 /**
